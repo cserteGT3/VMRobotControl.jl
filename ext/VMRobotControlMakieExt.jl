@@ -499,6 +499,10 @@ end
 Makie.@recipe(RobotVisualize, cache) do scene
     Makie.Theme(
         shading = true,
+        camera = :cam3d!,
+        transparency = false,
+        showframes = [""],
+        framescale = 0.1
     )
 end
 
@@ -517,6 +521,8 @@ function Makie.plot!(plot::RobotVisualize{Tuple{C}}) where C<:MechanismCacheBund
 
     meshes = []
     frames = CompiledFrameID[]
+    showed_frameIDs = CompiledFrameID[]
+    showed_frame_lines = []
 
     foreach(vis) do v
         v::CompiledVisual
@@ -530,11 +536,39 @@ function Makie.plot!(plot::RobotVisualize{Tuple{C}}) where C<:MechanismCacheBund
         push!(meshes, msh)
         push!(frames, v.frame)
     end
+    
+    if ! isempty(plot.showframes[])
+        foreach(plot.showframes[]) do frame_name
+            c_id = get_compiled_frameID(cache[], frame_name)
+            
+            tf = get_transform(cache[], c_id)
+            s = plot.framescale[]
+            x = tf * SVector(s, 0, 0)
+            y = tf * SVector(0, s, 0)
+            z = tf * SVector(0, 0, s)
+            o = VMRobotControl.origin(tf)
+            segments = [o, x, o, y, o, z]
+            
+            lsg = Makie.linesegments!(plot, segments; color=[:red, :green, :blue])
+            
+            push!(showed_frameIDs, c_id)
+            push!(showed_frame_lines, lsg)
+        end
+    end
 
     function update_from_cache(cache)
         for (mesh, frame) in zip(meshes, frames)
             tf = get_transform(cache, frame)
             transform_plot!(mesh, tf)
+        end
+        for (c_id, old_segments) in zip(showed_frameIDs, showed_frame_lines)
+            tf = get_transform(cache, c_id)
+            s = plot.framescale[]
+            x = tf * SVector(s, 0, 0)
+            y = tf * SVector(0, s, 0)
+            z = tf * SVector(0, 0, s)
+            o = VMRobotControl.origin(tf)
+            old_segments[1][] = [o, x, o, y, o, z]
         end
     end
 

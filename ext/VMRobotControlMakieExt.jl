@@ -537,7 +537,8 @@ function Makie.plot!(plot::RobotVisualize{Tuple{C}}) where C<:MechanismCacheBund
         push!(frames, v.frame)
     end
     
-    if ! isempty(plot.showframes[])
+    # if there's no showframes set, then an empty string is in the vector
+    if ! isempty(plot.showframes[][1])
         foreach(plot.showframes[]) do frame_name
             c_id = get_compiled_frameID(cache[], frame_name)
             

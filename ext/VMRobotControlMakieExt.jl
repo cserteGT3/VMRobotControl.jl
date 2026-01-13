@@ -522,7 +522,7 @@ function Makie.plot!(plot::RobotVisualize{Tuple{C}}) where C<:MechanismCacheBund
     meshes = []
     frames = CompiledFrameID[]
     showed_frameIDs = CompiledFrameID[]
-    showed_frame_lines = []
+    segment_observables = []
 
     foreach(vis) do v
         v::CompiledVisual
@@ -548,12 +548,12 @@ function Makie.plot!(plot::RobotVisualize{Tuple{C}}) where C<:MechanismCacheBund
             y = tf * SVector(0, s, 0)
             z = tf * SVector(0, 0, s)
             o = VMRobotControl.origin(tf)
-            segments = [o, x, o, y, o, z]
+            segments_obs = Observable([o, x, o, y, o, z])
             
-            lsg = Makie.linesegments!(plot, segments; color=[:red, :green, :blue])
+            Makie.linesegments!(plot, segments_obs; color=[:red, :green, :blue])
             
             push!(showed_frameIDs, c_id)
-            push!(showed_frame_lines, lsg)
+            push!(segment_observables, segments_obs)
         end
     end
 
@@ -562,14 +562,14 @@ function Makie.plot!(plot::RobotVisualize{Tuple{C}}) where C<:MechanismCacheBund
             tf = get_transform(cache, frame)
             transform_plot!(mesh, tf)
         end
-        for (c_id, old_segments) in zip(showed_frameIDs, showed_frame_lines)
+        for (c_id, segments) in zip(showed_frameIDs, segment_observables)
             tf = get_transform(cache, c_id)
             s = plot.framescale[]
             x = tf * SVector(s, 0, 0)
             y = tf * SVector(0, s, 0)
             z = tf * SVector(0, 0, s)
             o = VMRobotControl.origin(tf)
-            old_segments[1][] = [o, x, o, y, o, z]
+            segments[] = [o, x, o, y, o, z]
         end
     end
 
